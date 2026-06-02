@@ -1,0 +1,46 @@
+GROUPS,ADDFILES,FVSKEYWORDS,CREATED_DATE,MODIFIED_DATE,STATE
+All_FIA_Conditions,,"Database
+DSNIn
+FS_FIADB_STATECD_72.db
+StandSQL
+SELECT *
+FROM  FVS_StandInit_Cond
+WHERE Stand_CN = '%Stand_CN%'
+EndSQL
+TreeSQL
+SELECT *
+FROM FVS_TreeInit_Cond
+WHERE Stand_CN ='%Stand_CN%'
+EndSQL
+END
+",2019-10-03 17:45:44,,72.0
+All_FIA_Plots,,"Database
+DSNIn
+FS_FIADB_STATECD_72.db
+StandSQL
+SELECT *
+FROM FVS_StandInit_Plot
+WHERE Stand_CN = '%Stand_CN%'
+EndSQL
+TreeSQL
+SELECT *
+FROM FVS_TreeInit_Plot
+WHERE Stand_CN ='%Stand_CN%'
+EndSQL
+END
+",2019-10-03 17:45:45,,72.0
+All_FIA_Subplots,,"Database
+DSNIn
+FS_FIADB_STATECD_72.db
+StandSQL
+SELECT *
+FROM  FVS_PlotInit_Plot
+WHERE StandPlot_CN = '%Stand_CN%'
+EndSQL
+TreeSQL
+SELECT *
+FROM FVS_TreeInit_Plot
+WHERE StandPlot_CN ='%Stand_CN%'
+EndSQL
+END
+",2019-10-03 17:45:46,,72.0
