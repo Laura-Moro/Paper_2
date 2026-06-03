@@ -6,28 +6,30 @@ library(tidyr)
 library(quantreg)
 
 
-##LOAD DATA 
-#load species data habitat amount, fragemntaiton traits, 
-f <- readRDS("Repository/Data/post-nb-np_calcs-near-20260520.RDA")
-#Puerto Rico outline 
-pr <- st_read("Repository/Data/PR_Otline/PR_outline_Project.shp")
+### LOAD DATA 
+
+# load species data habitat amount, fragemntaiton traits, 
+f <- readRDS("Data/post-nb-np_calcs-near-20260520.RDA")
+
+# Puerto Rico outline 
+pr <- st_read("Data/PR_Otline/PR_outline_Project.shp")
 
 # Download FIA data for Puerto Rico (one time only)
 # PR_Trees <- getFIA(states = 'PR', dir = 'Data/FIA/bob')
 # Load data (excluding points off of mainland PR (e.g., Vieques, Culebra))
 
-FIA <- readFIA("Repository/Data/FIA/")
+FIA <- readFIA("Data/FIA/")
 
-#load the downloaded abundace data 
+# load the downloaded abundance data 
 prfia <- clipFIA(FIA, mask=pr, mostRecent=F)
 
 # Estimate total population size by species for trees with diameter of at least 2 inches
 pr_tpa_diam2 <- tpa(prfia, bySpecies=TRUE, totals=TRUE, treeDomain=DIA>2)
 
-#select data form 2004 and 2014
-pr_tpa_diam2<- pr_tpa_diam2[pr_tpa_diam2$YEAR %in% c(2004, 2014),]
+# Select data from 2004 and 2014
+pr_tpa_diam2 <- pr_tpa_diam2[pr_tpa_diam2$YEAR %in% c(2004, 2014),]
 
-#filter the data frame and use only the columns
+# Filter the data frame and use only the columns
 pr_tpa_diam2_sel <- pr_tpa_diam2[,c("YEAR", "SPCD", "SCIENTIFIC_NAME", "TPA")]
 
 A <- pr_tpa_diam2_sel %>%
@@ -37,20 +39,20 @@ A <- pr_tpa_diam2_sel %>%
     names_prefix = "TPA_"
   )
 
-### Format species names 
+# Format species names 
 f$X <- gsub("_", " ", f$X)
-# Give sp code to FIA data
+
+# Give spcode to FIA data
 A$code <- f$sp[match(A$SCIENTIFIC_NAME, f$X)]
 
-
-#merge the abbundnace data to the habitatdata 
+# Merge the abundance data to the habitat data 
 H <- f[,c("X","sp","fcover_51_raw", "fcover_00_raw", "tot_change_raw", "enn_51", "enn_00", "enn_change",
             "ss.log.z", "thk.log.z", "la.log.z", "sla.log.z", "maxht.z", "wd.z")]
 
-#remove species with NA values for the traits 
+# Remove species with NA values for the traits 
 df <- na.omit(H)
 
-#merge the abundnace data 
+# Merge the abundance data 
 df$TPA_2004 <- A$TPA_2004[match(df$sp, A$code)]
 df$TPA_2014 <- A$TPA_2014[match(df$sp, A$code)]
 
@@ -64,14 +66,14 @@ df$TPA_2014[is.na(df$TPA_2014)] <- 0
 
 df$TPA_change <- df$TPA_2004 - df$TPA_2014
 
-#Run the PCA
-pcadata<- df[, c("ss.log.z","thk.log.z","la.log.z",      
+# Run the trait PCA
+pcadata <- df[, c("ss.log.z","thk.log.z","la.log.z",      
                  "sla.log.z","maxht.z", "wd.z")]
 
-pca<- prcomp(pcadata, center=TRUE, scale.=TRUE)
+pca <- prcomp(pcadata, center=TRUE, scale.=TRUE)
 summary(pca)
 
-#plot the PCa
+# Plot the PCA
 fviz_pca_biplot(pca, label = "var", col.var = "contrib", repel = FALSE, 
   pointshape = 16, pointsize = 2.4,col.ind = "gray40") +
   scale_color_gradient(low  = "seagreen", high = "sienna1", name = "Contribution (%)"
@@ -87,28 +89,27 @@ fviz_pca_biplot(pca, label = "var", col.var = "contrib", repel = FALSE,
   legend.text  = element_text(size = 14)
 )
 
-#Save PCA axis scores 
+# Save PCA axis scores 
 scores <- as.data.frame(pca$x)
 scores$sp <- df$sp
 
-# add the loading on the axis on the data frame. 
+# Add the loading on the axis on the data frame
 df$PC1 <- scores$PC1[match(df$sp,scores$sp)]
 df$PC1.z <- scale(df$PC1)
 
-#scalethe variables for the models 
+# scale the variables for the models 
 df$fcover_51_raw.z <- scale(df$fcover_51_raw)
 df$tot_change_raw.z <- scale(df$tot_change_raw) 
 df$enn_51.z <- scale(df$enn_51)
 df$enn_change.z <- scale(df$enn_change)
 
 
-##How does the remaining habitat in 1951 relate to current species 
-#abundance when accounting for species’ life-history traits?
+## How does the remaining habitat in 1951 relate to current species abundance when accounting for species’ life-history traits?
 
-#remove remove abundance values that are 0 
+# Remove remove abundance values that are 0 
 df_51 <- df[df$TPA_2014!= 0, ]
 
-#rind the quatile regression 
+# run the quantile regression 
 qr <- rq(TPA_2014 ~ fcover_51_raw.z + PC1.z + enn_51.z + fcover_51_raw.z * PC1.z, tau = .95, data = df_51)
 summary(qr)
 
